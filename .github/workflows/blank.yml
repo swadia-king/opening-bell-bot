@@ -25,39 +25,27 @@ jobs:
           echo "Downloading $URL ..."
           curl -L --fail --retry 3 --retry-delay 2 -o "$FILE" "$URL"
 
+          # Save to global environment for subsequent steps
           echo "FILE=$FILE" >> $GITHUB_ENV
 
       # -----------------------------
-      # 2. Install GitHub CLI (ensures consistency)
-      # -----------------------------
-      - name: Setup GitHub CLI
-        run: |
-          set -euo pipefail
-          sudo apt-get update
-          sudo apt-get install -y gh
-
-      # -----------------------------
-      # 3. Authenticate GH CLI safely
-      # (no manual login needed)
-      # -----------------------------
-      - name: Set GH auth
-        run: |
-          echo "GH_TOKEN=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_ENV
-
-      # -----------------------------
-      # 4. Create release safely
+      # 2. Create release safely
       # -----------------------------
       - name: Create Release and Upload File
+        env:
+          #  The correct, secure way to authenticate the GH CLI
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
         run: |
           set -euo pipefail
 
-          FILE="${FILE}"
+          # Pull the filename from the GitHub environment context
+          FILE="${{ env.FILE }}"
           TAG="v$(date +%Y%m%d-%H%M%S)-${GITHUB_RUN_ID}"
 
           echo "Creating release: $TAG"
           echo "Uploading file: $FILE"
 
-          # Prevent duplicate tag failure (extra safety)
+          # Prevent duplicate tag failure
           if gh release view "$TAG" >/dev/null 2>&1; then
             echo "Release already exists, skipping..."
             exit 0
