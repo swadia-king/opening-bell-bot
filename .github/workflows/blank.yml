@@ -33,25 +33,25 @@ jobs:
       # -----------------------------
       - name: Create Release and Upload File
         env:
-          #  The correct, secure way to authenticate the GH CLI
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
         run: |
           set -euo pipefail
 
-          # Pull the filename from the GitHub environment context
           FILE="${{ env.FILE }}"
           TAG="v$(date +%Y%m%d-%H%M%S)-${GITHUB_RUN_ID}"
 
           echo "Creating release: $TAG"
           echo "Uploading file: $FILE"
 
-          # Prevent duplicate tag failure
-          if gh release view "$TAG" >/dev/null 2>&1; then
+          # Added --repo flag here to bypass the "not a git repository" error
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "Release already exists, skipping..."
             exit 0
           fi
 
+          # Added --repo flag here as well
           gh release create "$TAG" "$FILE" \
+            --repo "$GITHUB_REPOSITORY" \
             --title "Opening Bell PDF $TAG" \
             --notes "Auto-downloaded PDF from ICICI Direct" \
             --latest
