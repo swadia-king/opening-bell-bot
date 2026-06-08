@@ -15,9 +15,11 @@ jobs:
         run: |
           wget -O "openingbell_$(date +%Y_%m_%d_%H_%M_%S).pdf" https://www.icicidirect.com/mailimages/openingbell.pdf
 
-      - name: Create Release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Set up GitHub CLI auth
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
+
+      - name: Create Release and Upload File
         run: |
           FILE=$(ls openingbell_*.pdf | head -n 1)
           TAG="v$(date +%Y%m%d-%H%M%S)"
