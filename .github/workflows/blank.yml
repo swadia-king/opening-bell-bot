@@ -1,6 +1,8 @@
 name: Download PDF and Release
 
 on:
+  schedule:
+    - cron: '0 4 * * *'
   workflow_dispatch:
 
 permissions:
