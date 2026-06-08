@@ -2,7 +2,7 @@ name: Download PDF and Release
 
 on:
   schedule:
-    - cron: '0 4 * * *'
+    - cron: '0 4 * * 1-5'
   workflow_dispatch:
 
 permissions:
@@ -57,3 +57,27 @@ jobs:
             --title "Opening Bell PDF $TAG" \
             --notes "Auto-downloaded PDF from ICICI Direct" \
             --latest
+      # -----------------------------
+      # 3. Native Cleanup (Keeps latest 100)
+      # -----------------------------
+      - name: Delete Older Releases
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          KEEP_COUNT=100
+          echo "Checking for releases older than the latest $KEEP_COUNT..."
+
+          # Fetch all release tags sorted from newest to oldest, skipping the first 365
+          # --limit 1000 ensures it catches older ones if you accumulate a lot over time
+          OLD_RELEASES=$(gh release list --repo "$GITHUB_REPOSITORY" --limit 1000 | cut -f3 | tail -n +$((KEEP_COUNT + 1)))
+
+          if [ -z "$OLD_RELEASES" ]; then
+            echo "No old releases to clean up."
+          else
+            for OLD_TAG in $OLD_RELEASES; do
+              echo "Deleting old release and tag: $OLD_TAG"
+              gh release delete "$OLD_TAG" --repo "$GITHUB_REPOSITORY" --yes --cleanup-tag
+            done
+          fi          
