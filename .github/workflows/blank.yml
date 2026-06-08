@@ -11,19 +11,59 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      # -----------------------------
+      # 1. Download PDF safely
+      # -----------------------------
       - name: Download PDF
         run: |
-          wget -O "openingbell_$(date +%Y_%m_%d_%H_%M_%S).pdf" https://www.icicidirect.com/mailimages/openingbell.pdf
+          set -euo pipefail
 
-      - name: Set up GitHub CLI auth
+          URL="https://www.icicidirect.com/mailimages/openingbell.pdf"
+          TS=$(date +%Y_%m_%d_%H_%M_%S)
+          FILE="openingbell_${TS}_${GITHUB_RUN_ID}.pdf"
+
+          echo "Downloading $URL ..."
+          curl -L --fail --retry 3 --retry-delay 2 -o "$FILE" "$URL"
+
+          echo "FILE=$FILE" >> $GITHUB_ENV
+
+      # -----------------------------
+      # 2. Install GitHub CLI (ensures consistency)
+      # -----------------------------
+      - name: Setup GitHub CLI
         run: |
-          echo "${{ secrets.GITHUB_TOKEN }}" | gh auth login --with-token
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y gh
 
+      # -----------------------------
+      # 3. Authenticate GH CLI safely
+      # (no manual login needed)
+      # -----------------------------
+      - name: Set GH auth
+        run: |
+          echo "GH_TOKEN=${{ secrets.GITHUB_TOKEN }}" >> $GITHUB_ENV
+
+      # -----------------------------
+      # 4. Create release safely
+      # -----------------------------
       - name: Create Release and Upload File
         run: |
-          FILE=$(ls openingbell_*.pdf | head -n 1)
-          TAG="v$(date +%Y%m%d-%H%M%S)"
+          set -euo pipefail
+
+          FILE="${FILE}"
+          TAG="v$(date +%Y%m%d-%H%M%S)-${GITHUB_RUN_ID}"
+
+          echo "Creating release: $TAG"
+          echo "Uploading file: $FILE"
+
+          # Prevent duplicate tag failure (extra safety)
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release already exists, skipping..."
+            exit 0
+          fi
 
           gh release create "$TAG" "$FILE" \
             --title "Opening Bell PDF $TAG" \
-            --notes "Auto-downloaded PDF"
+            --notes "Auto-downloaded PDF from ICICI Direct" \
+            --latest
