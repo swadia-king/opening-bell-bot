@@ -1,0 +1,27 @@
+name: Download PDF and Release
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Download PDF
+        run: |
+          wget -O "openingbell_$(date +%Y_%m_%d_%H_%M_%S).pdf" https://www.icicidirect.com/mailimages/openingbell.pdf
+
+      - name: Create Release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          FILE=$(ls openingbell_*.pdf | head -n 1)
+          TAG="v$(date +%Y%m%d-%H%M%S)"
+
+          gh release create "$TAG" "$FILE" \
+            --title "Opening Bell PDF $TAG" \
+            --notes "Auto-downloaded PDF"
