@@ -1,0 +1,18 @@
+name: Debug Timezone
+
+on:
+  workflow_dispatch:
+
+jobs:
+  debug:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Show time information
+        run: |
+          echo "TZ env: $TZ"
+          date
+          date -u
+          timedatectl || true
+          ls -l /etc/localtime || true
+          cat /etc/timezone || true
